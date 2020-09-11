@@ -158,7 +158,7 @@ void QuMultiReader::onUpdate(const CuData &data)
 {
     QString from = QString::fromStdString( data["src"].toString());
     int pos = d->srcs.indexOf(from);
-    printf("QuMultiReader::onUpdate got data from %s [%d/%d]...\n", qstoc(from), pos, d->srcs.size());
+    printf("QuMultiReader::onUpdate  \e[1;32m * \e[0m got data from %s [%d/%d]...\e[1;32m * \e[0m\n", qstoc(from), pos, d->srcs.size());
     if(pos >= 0) {
         emit onNewData(data);
 
