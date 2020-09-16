@@ -9,13 +9,13 @@
 class QuMultiReaderPrivate
 {
 public:
-    QStringList srcs;
     QMap<QString, CuControlsReaderA* > readersMap;
     bool sequential;
     int period, manual_mode_code;
     CuContext *context;
     QTimer *timer;
-    QList<CuData> databuf;
+    QMap<int, CuData> databuf;
+    QMap<int, QString> idx_src_map;
 };
 
 QuMultiReader::QuMultiReader(QObject *parent) :
@@ -23,7 +23,7 @@ QuMultiReader::QuMultiReader(QObject *parent) :
 {
     d = new QuMultiReaderPrivate;
     d->sequential = false;
-    d->period = 1000;
+    d->period = 5000;
     d->manual_mode_code = -1; // parallel reading
     d->timer = NULL;
     d->context = NULL;
@@ -60,7 +60,7 @@ void QuMultiReader::setSources(const QStringList &srcs)
 void QuMultiReader::unsetSources()
 {
     d->context->disposeReader(); // empty arg: dispose all
-    d->srcs.clear();
+    d->idx_src_map.clear();
     d->readersMap.clear();
 }
 
@@ -73,7 +73,7 @@ void QuMultiReader::insertSource(const QString &src, int i)
 {
     CuData options;
     if(d->sequential)  {
-        options["period"] = d->period;
+        options["period"] = 5; // d->period;
         options["refresh_mode"] = d->manual_mode_code;
         options["manual"] = true;
         d->context->setOptions(options);
@@ -82,10 +82,9 @@ void QuMultiReader::insertSource(const QString &src, int i)
     if(r) {
         r->setSource(src); // then use r->source, not src
         d->readersMap.insert(r->source(), r);
-        d->srcs.insert(i, r->source());
+        d->idx_src_map.insert(i, r->source());
     }
-
-    if(d->srcs.size() == 1 && d->sequential)
+    if(d->idx_src_map.size() == 1 && d->sequential)
         m_startTimer();
 }
 
@@ -93,7 +92,7 @@ void QuMultiReader::removeSource(const QString &src)
 {
     if(d->context)
         d->context->disposeReader(src.toStdString());
-    d->srcs.removeAll(src);
+    d->idx_src_map.remove(d->idx_src_map.key(src));
     d->readersMap.remove(src);
 }
 
@@ -108,7 +107,7 @@ const QObject *QuMultiReader::get_qobject() const
 
 QStringList QuMultiReader::sources() const
 {
-    return d->srcs;
+    return d->idx_src_map.values();
 }
 
 int QuMultiReader::period() const
@@ -136,11 +135,11 @@ bool QuMultiReader::sequential() const {
 
 void QuMultiReader::startRead()
 {
-    if(d->srcs.size() > 0)
-        d->readersMap[d->srcs.first()]->sendData(CuData("read", ""));
+    if(d->idx_src_map.size() > 0)
+        d->readersMap[d->idx_src_map.first()]->sendData(CuData("read", ""));
 
-    if(d->srcs.size() > 0)
-        printf("QuMultiReader.startRead: started cycle with read command for %s...\n", qstoc(d->srcs.first()));
+    if(d->idx_src_map.size() > 0)
+        printf("QuMultiReader.startRead: started cycle with read command for %s...\n", qstoc(d->idx_src_map.first()));
 }
 
 void QuMultiReader::m_startTimer()
@@ -157,27 +156,38 @@ void QuMultiReader::m_startTimer()
 void QuMultiReader::onUpdate(const CuData &data)
 {
     QString from = QString::fromStdString( data["src"].toString());
-    int pos = d->srcs.indexOf(from);
-    printf("QuMultiReader::onUpdate  \e[1;32m * \e[0m got data from %s [%d/%d]...\e[1;32m * \e[0m\n", qstoc(from), pos, d->srcs.size());
-    if(pos >= 0) {
-        emit onNewData(data);
+    int pos = d->idx_src_map.key(from);
+    emit onNewData(data);
 
-        if(d->sequential)
-            d->databuf.append(data);
-
-        if(d->sequential && ++pos < d->srcs.size()) {
-            d->readersMap[d->srcs[pos]]->sendData(CuData("read", ""));
-        }
-        else if(d->sequential) {
-            // one read cycle is over: emit signal
-            emit onSeqReadComplete(d->databuf);
-            d->databuf.clear();
-            d->timer->start(d->period);
-            printf("+ read cycle complete, restarting timer, timeout %d\n", d->timer->interval());
+    printf("QuMultiReader::onUpdate index \e[1;31m%d\e[0m -> \e[1;33m%s\e[0m\n", pos, datos(data));
+    if(d->sequential) {
+        bool update = d->databuf.contains(pos);
+        d->databuf[pos] = data; // update or new
+        if(!update) {
+            //#if (QT_VERSION >= QT_VERSION_CHECK(5, 14, 0))
+            //        QSet<int> res_idx(d->databuf.keys().begin(), d->databuf.keys().end());
+            //        QSet<int> idxs(d->idx_src_map.keys().begin(), d->idx_src_map.keys().end());
+            //#else
+            QSet<int> res_idx = d->databuf.keys().toSet();
+            QSet<int> idxs = d->idx_src_map.keys().toSet();
+            //#endif
+            if(res_idx != idxs) {
+                QSet<int> diff = idxs - res_idx;
+                QSet<int>::iterator minit = std::min_element(diff.begin(), diff.end());
+                qDebug() << __PRETTY_FUNCTION__ << "update for key" << pos << "from" << from << "type" << data["type"].toString().c_str() << res_idx << idxs << diff << *minit;
+                if(minit != diff.end()) {
+                    int i = *minit;
+                    d->readersMap[d->idx_src_map[i]]->sendData(CuData("read", ""));
+                }
+            }
+            else { // databuf complete
+                emit onSeqReadComplete(d->databuf.values()); // Returns all the values in the map, in ascending order of their keys
+                d->databuf.clear();
+                printf("\e[1;36m+++++++++++++ \e[1;32mread cycle complete, restarting timer, timeout %d\e[0m\n", d->timer->interval());
+                d->timer->start(d->period);
+            }
         }
     }
-    else
-        perr("QuMultiReader.onUpdate: source \"%s\" not found", qstoc(from));
 }
 
 #if QT_VERSION < 0x050000
