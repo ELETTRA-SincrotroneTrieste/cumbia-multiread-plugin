@@ -97,7 +97,7 @@ signals:
 private:
     QuMultiReaderPrivate *d;
 
-    void m_startTimer();
+    void m_timerSetup();
 
     // CuDataListener interface
 public:

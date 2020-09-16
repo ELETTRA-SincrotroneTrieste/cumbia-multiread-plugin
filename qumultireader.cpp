@@ -71,6 +71,7 @@ void QuMultiReader::unsetSources()
  */
 void QuMultiReader::insertSource(const QString &src, int i)
 {
+    printf("\e[1;35mQuMultiReader.insertSource %s --> %d\e[0m\n", qstoc(src), i);
     CuData options;
     if(d->sequential)  {
         options["period"] = 5; // d->period;
@@ -85,7 +86,7 @@ void QuMultiReader::insertSource(const QString &src, int i)
         d->idx_src_map.insert(i, r->source());
     }
     if(d->idx_src_map.size() == 1 && d->sequential)
-        m_startTimer();
+        m_timerSetup();
 }
 
 void QuMultiReader::removeSource(const QString &src)
@@ -135,21 +136,22 @@ bool QuMultiReader::sequential() const {
 
 void QuMultiReader::startRead()
 {
-    if(d->idx_src_map.size() > 0)
-        d->readersMap[d->idx_src_map.first()]->sendData(CuData("read", ""));
-
-    if(d->idx_src_map.size() > 0)
+    if(d->idx_src_map.size() > 0) {
+        // first: returns a reference to the first value in the map, that is the value mapped to the smallest key.
+        // This function assumes that the map is not empty.
+        const QString& src0 = d->idx_src_map.first();
+        d->readersMap[src0]->sendData(CuData("read", ""));
         printf("QuMultiReader.startRead: started cycle with read command for %s...\n", qstoc(d->idx_src_map.first()));
+    }
 }
 
-void QuMultiReader::m_startTimer()
+void QuMultiReader::m_timerSetup()
 {
     if(!d->timer) {
         d->timer = new QTimer(this);
         connect(d->timer, SIGNAL(timeout()), this, SLOT(startRead()));
         d->timer->setSingleShot(true);
-        d->timer->start(d->period);
-        printf("+ timer started with period %d\n", d->period);
+        d->timer->setInterval(d->period);
     }
 }
 
@@ -157,6 +159,8 @@ void QuMultiReader::onUpdate(const CuData &data)
 {
     QString from = QString::fromStdString( data["src"].toString());
     int pos = d->idx_src_map.key(from);
+    if(!d->idx_src_map.values().contains(from))
+        printf("\e[1;31mQuMultiReader::onUpdate idx_src_map DOES NOT CONTAIN \"%s\"\e[0m\n\n", qstoc(from));
     emit onNewData(data);
 
     printf("QuMultiReader::onUpdate index \e[1;31m%d\e[0m -> \e[1;33m%s\e[0m\n", pos, datos(data));
@@ -177,7 +181,7 @@ void QuMultiReader::onUpdate(const CuData &data)
                 qDebug() << __PRETTY_FUNCTION__ << "update for key" << pos << "from" << from << "type" << data["type"].toString().c_str() << res_idx << idxs << diff << *minit;
                 if(minit != diff.end()) {
                     int i = *minit;
-                    d->readersMap[d->idx_src_map[i]]->sendData(CuData("read", ""));
+                    d->readersMap[d->idx_src_map[i]]->sendData(CuData("read", "").set("src", from.toStdString()));
                 }
             }
             else { // databuf complete
