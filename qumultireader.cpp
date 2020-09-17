@@ -74,7 +74,7 @@ void QuMultiReader::insertSource(const QString &src, int i)
     printf("\e[1;35mQuMultiReader.insertSource %s --> %d\e[0m\n", qstoc(src), i);
     CuData options;
     if(d->sequential)  {
-        options["period"] = 5; // d->period;
+        options["period"] = 5000; // d->period;
         options["refresh_mode"] = d->manual_mode_code;
         options["manual"] = true;
         d->context->setOptions(options);
