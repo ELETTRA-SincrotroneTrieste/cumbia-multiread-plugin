@@ -162,8 +162,6 @@ void QuMultiReader::onUpdate(const CuData &data)
     if(!d->idx_src_map.values().contains(from))
         printf("\e[1;31mQuMultiReader::onUpdate idx_src_map DOES NOT CONTAIN \"%s\"\e[0m\n\n", qstoc(from));
     emit onNewData(data);
-
-    printf("QuMultiReader::onUpdate index \e[1;31m%d\e[0m -> \e[1;33m%s\e[0m\n", pos, datos(data));
     if(d->sequential) {
         bool update = d->databuf.contains(pos);
         d->databuf[pos] = data; // update or new
@@ -178,7 +176,6 @@ void QuMultiReader::onUpdate(const CuData &data)
             if(res_idx != idxs) {
                 QSet<int> diff = idxs - res_idx;
                 QSet<int>::iterator minit = std::min_element(diff.begin(), diff.end());
-                qDebug() << __PRETTY_FUNCTION__ << "update for key" << pos << "from" << from << "type" << data["type"].toString().c_str() << res_idx << idxs << diff << *minit;
                 if(minit != diff.end()) {
                     int i = *minit;
                     d->readersMap[d->idx_src_map[i]]->sendData(CuData("read", "").set("src", from.toStdString()));
