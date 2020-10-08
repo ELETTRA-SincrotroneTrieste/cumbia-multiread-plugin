@@ -38,8 +38,12 @@ include ($${INSTALL_ROOT}/include/cumbia-qtcontrols/cumbia-qtcontrols.pri)
     QUMBIA_PLUGINS_DOCDIR=$${INSTALL_ROOT}/share/doc/qumbia-plugins
 #
 #
+# # Plugin interface will be installed under cumbia-qtcontrols/include dirs
+# CUMBIA_QTCONTROLS_INCLUDES is defined in cumbia-qtcontrols.pri, which is included above
+#
 # + ----------------------------------------------------------------- +
 #
+
 
 INC_DIR = $${QUMBIA_PLUGINS_INCLUDES}
 SHAREDIR = $${QUMBIA_PLUGINS_SHARE}
@@ -72,9 +76,16 @@ QMAKE_EXTRA_TARGETS += doc
 target.path = $${PLUGIN_LIB_DIR}
 inc.path = $${INC_DIR}
 
+# plugin interface, installed under CUMBIA_QTCONTROLS_INCLUDES
+# defined in cumbia-qtcontrols.pri, by default $${INSTALL_ROOT}/include/cumbia-qtcontrols
+#
+iface_inc.path = $${CUMBIA_QTCONTROLS_INCLUDES}
+iface_inc.files = qumultireaderplugininterface.h
+
 # installation
 
 INSTALLS += target \
+    iface_inc \
     inc \
     doc
 
@@ -91,7 +102,9 @@ SOURCES += \
 
 HEADERS += \
     qumultireader.h
-DISTFILES += cumbia-multiread.json 
+
+DISTFILES += cumbia-multiread.json  \
+    qumultireaderplugininterface.h
 
 inc.files += $${HEADERS}
 
