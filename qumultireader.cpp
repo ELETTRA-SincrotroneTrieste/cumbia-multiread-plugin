@@ -71,7 +71,7 @@ void QuMultiReader::unsetSources()
  */
 void QuMultiReader::insertSource(const QString &src, int i)
 {
-    printf("\e[1;35mQuMultiReader.insertSource %s --> %d\e[0m\n", qstoc(src), i);
+    cuprintf("\e[1;35mQuMultiReader.insertSource %s --> %d\e[0m\n", qstoc(src), i);
     CuData options;
     if(d->sequential)  {
         options["period"] = 1000; // d->period;
@@ -141,7 +141,7 @@ void QuMultiReader::startRead()
         // This function assumes that the map is not empty.
         const QString& src0 = d->idx_src_map.first();
         d->readersMap[src0]->sendData(CuData("read", ""));
-        printf("QuMultiReader.startRead: started cycle with read command for %s...\n", qstoc(d->idx_src_map.first()));
+        cuprintf("QuMultiReader.startRead: started cycle with read command for %s...\n", qstoc(d->idx_src_map.first()));
     }
 }
 
@@ -178,13 +178,15 @@ void QuMultiReader::onUpdate(const CuData &data)
                 QSet<int>::iterator minit = std::min_element(diff.begin(), diff.end());
                 if(minit != diff.end()) {
                     int i = *minit;
-                    d->readersMap[d->idx_src_map[i]]->sendData(CuData("read", "").set("src", from.toStdString()));
+                    const QString& s = d->idx_src_map[i];
+                    cuprintf("QuMultiReader::onUpdate: sending read for index %d src %s\n", i, s.toStdString().c_str());
+                    d->readersMap[d->idx_src_map[i]]->sendData(CuData("read", "").set("src", s.toStdString()));
                 }
             }
             else { // databuf complete
                 emit onSeqReadComplete(d->databuf.values()); // Returns all the values in the map, in ascending order of their keys
                 d->databuf.clear();
-                printf("\e[1;36m+++++++++++++ \e[1;32mread cycle complete, restarting timer, timeout %d\e[0m\n", d->timer->interval());
+                cuprintf("\e[1;36m+++++++++++++ \e[1;32mread cycle complete, restarting timer, timeout %d\e[0m\n", d->timer->interval());
                 d->timer->start(d->period);
             }
         }
