@@ -22,11 +22,12 @@ class CuControlsFactoryPool;
  *
 void Multireader::m_loadMultiReaderPlugin()
 {
-    QDir pluginsDir(CUMBIA_QTCONTROLS_PLUGIN_DIR);
-    pluginsDir.cd("plugins");
-    foreach (QString fileName, pluginsDir.entryList(QDir::Files)) {
-        QPluginLoader pluginLoader(pluginsDir.absoluteFilePath(fileName));
-        QObject *plugin = pluginLoader.instance();
+    QObject *plugin_qob;
+
+    if(!plugin) { // initialize plugin once
+        plugin = pl.get<QuMultiReaderPluginInterface>("libcumbia-multiread-plugin.so", &plugin_qob);
+        if(!plugin)
+            perr("Multireader: failed to load plugin \"libcumbia-multiread-plugin.so\"");
         if (plugin) {
             m_multir = qobject_cast<QuMultiReaderPluginInterface *>(plugin);
 
@@ -54,6 +55,14 @@ void Multireader::m_loadMultiReaderPlugin()
  *
  * \endcode
  *
+ * \par Warning
+ * Do not forget to call
+ *
+ * \code
+ * m_multir->unsetSources
+ * \endcode
+ *
+ * before the application exits. In fact, if the plugin is destroyed *after* Cumbia, the behavior is undefined.
  */
 class QuMultiReader : public QObject, public QuMultiReaderPluginInterface, public CuDataListener
 {
