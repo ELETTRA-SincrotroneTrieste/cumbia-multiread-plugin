@@ -69,12 +69,11 @@ void QuMultiReader::unsetSources()
  *
  * @see setSources
  */
-void QuMultiReader::insertSource(const QString &src, int i)
-{
+void QuMultiReader::insertSource(const QString &src, int i) {
     cuprintf("\e[1;35mQuMultiReader.insertSource %s --> %d\e[0m\n", qstoc(src), i);
     CuData options;
     if(d->sequential)  {
-        options["period"] = 1000; // d->period;
+        options["period"] = d->period;
         options["refresh_mode"] = d->manual_mode_code;
         options["manual"] = true;
         d->context->setOptions(options);
@@ -145,8 +144,7 @@ void QuMultiReader::startRead()
     }
 }
 
-void QuMultiReader::m_timerSetup()
-{
+void QuMultiReader::m_timerSetup() {
     if(!d->timer) {
         d->timer = new QTimer(this);
         connect(d->timer, SIGNAL(timeout()), this, SLOT(startRead()));
@@ -155,8 +153,7 @@ void QuMultiReader::m_timerSetup()
     }
 }
 
-void QuMultiReader::onUpdate(const CuData &data)
-{
+void QuMultiReader::onUpdate(const CuData &data) {
     QString from = QString::fromStdString( data["src"].toString());
     int pos = d->idx_src_map.key(from);
     if(!d->idx_src_map.values().contains(from))
