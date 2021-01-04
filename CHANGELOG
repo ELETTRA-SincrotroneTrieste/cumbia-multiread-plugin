@@ -1,0 +1,4 @@
+1.2.3
+fixes
+sendData implementation
+insertSource : index must be >= 0

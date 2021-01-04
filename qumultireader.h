@@ -12,6 +12,7 @@ class Cumbia;
 class CumbiaPool;
 class CuControlsReaderFactoryI;
 class CuControlsFactoryPool;
+class CuControlsReaderA;
 
 /** \mainpage This plugin allows parallel and sequential reading from multiple sources
  *
@@ -81,8 +82,10 @@ public:
     // QuMultiReaderPluginInterface interface
 public:
 
-    void init(Cumbia *cumbia, const CuControlsReaderFactoryI &r_fac, int manual_mode_code = -1);
-    void init(CumbiaPool *cumbia_pool, const CuControlsFactoryPool &fpool, int manual_mode_code = -1);
+    void init(Cumbia *cumbia, const CuControlsReaderFactoryI &r_fac, int manual_mode_code = 0);
+    void init(CumbiaPool *cumbia_pool, const CuControlsFactoryPool &fpool, int manual_mode_code = 0);
+    void sendData(const QString& s, const CuData& da);
+    void sendData(int index, const CuData& da);
     void setSources(const QStringList &srcs);
     void unsetSources();
     void insertSource(const QString &src, int i);
@@ -95,7 +98,6 @@ public:
     void setSequential(bool seq);
     bool sequential() const;
 
-
 public slots:
     void startRead();
 
@@ -107,6 +109,7 @@ private:
     QuMultiReaderPrivate *d;
 
     void m_timerSetup();
+    int m_matchNoArgs(const QString& src) const;
 
     // CuDataListener interface
 public:

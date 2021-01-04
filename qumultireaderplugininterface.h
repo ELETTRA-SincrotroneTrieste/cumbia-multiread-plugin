@@ -10,6 +10,7 @@ class CuControlsReaderFactoryI;
 class CuControlsFactoryPool;
 class QString;
 class QStringList;
+class CuData;
 
 /** \brief Interface for a plugin implementing reader that connects to multiple quantities.
  *
@@ -103,6 +104,26 @@ public:
      * @return The object implementing QuMultiReaderPluginInterface as a QObject.
      */
     virtual const QObject* get_qobject() const = 0;
+
+    /*!
+     * \brief send data to the reader specified by the source
+     * \param s the source to send data to
+     * \param da the data
+     * \par Example
+     * This method can be used to change the input args of *s*, if s is a command.
+     */
+    virtual void sendData(const QString& s, const CuData& da) = 0;
+
+    /*!
+     * \brief send data to the reader specified by the index
+     * \param index the index of the source to send data to
+     * \param da the data
+     * \par Example
+     * This method can be used to change the input args of *s*, if s is a command.
+     *
+     * This is a convenience method equivalent to QString counterpart
+     */
+    virtual void sendData(int index, const CuData& da) = 0;
 };
 
 #define QuMultiReaderPluginInterface_iid "eu.elettra.qutils.QuMultiReaderPluginInterface"

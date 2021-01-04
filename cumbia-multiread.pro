@@ -90,7 +90,8 @@ INSTALLS += target \
     doc
 
 DISTFILES += \
-    $$PWD/qumbia-plugins.md
+    $$PWD/qumbia-plugins.md \
+    CHANGELOG
 
 
 TARGET = cumbia-multiread-plugin
