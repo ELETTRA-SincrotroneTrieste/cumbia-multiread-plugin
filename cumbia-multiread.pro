@@ -58,6 +58,8 @@ DESTDIR = plugins
 # deprecated API in order to know how to port your code away from it.
 DEFINES += QT_DEPRECATED_WARNINGS
 
+DEFINES -= QT_NO_DEBUG_OUTPUT
+
 unix:!android-g++ {
     DEFINES += CUMBIAQTCONTROLS_HAS_QWT=1
 }
