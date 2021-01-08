@@ -87,7 +87,13 @@ void QuMultiReader::insertSource(const QString &src, int i) {
         CuData options;
         if(d->sequential)  {
             // readings in the same thread
-            options["refresh_mode"] = 1; // CuTReader::PolledRefresh
+            if(d->period > 0) {
+                options["refresh_mode"] = 1; // CuTReader::PolledRefresh
+                options["period"] = d->period;
+            }
+            else
+                options["manual"] = true;
+
             options["thread_token"] = QString("multi_reader_%1").arg(objectName()).toStdString();
             d->context->setOptions(options);
         }
@@ -143,8 +149,13 @@ void QuMultiReader::setPeriod(int ms) {
     d->period = ms;
     if(!d->sequential && ms > 0) {
         CuData per("period", ms);
+        per["refresh_mode"] = 1;
         foreach(CuControlsReaderA *r, d->context->readers())
             r->sendData(per);
+    }
+    else if(d->sequential) {
+        foreach(CuControlsReaderA *r, d->context->readers())
+            r->sendData(CuData("manual", true));
     }
 }
 
