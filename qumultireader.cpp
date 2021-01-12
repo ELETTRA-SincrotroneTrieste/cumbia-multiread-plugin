@@ -57,6 +57,7 @@ void QuMultiReader::sendData(const QString &s, const CuData &da) {
 
 void QuMultiReader::sendData(int index, const CuData &da) {
     const QString& src = d->idx_src_map[index];
+    printf("\e[1;35mQuMultiReader.sendData: sending data to %s\e[0m\n", qstoc(src));
     if(!src.isEmpty())
         sendData(src, da);
 }
@@ -153,7 +154,7 @@ void QuMultiReader::setPeriod(int ms) {
         foreach(CuControlsReaderA *r, d->context->readers())
             r->sendData(per);
     }
-    else if(d->sequential) {
+    else if(d->sequential && ms <= 0) {
         foreach(CuControlsReaderA *r, d->context->readers())
             r->sendData(CuData("manual", true));
     }
@@ -173,7 +174,6 @@ bool QuMultiReader::sequential() const {
  */
 void QuMultiReader::startRead()
 {
-    printf("\e[1;31mQuMultiReader::startRead >>>>>>>>>>> SENDER %p\e[0m\n", sender());
     if(d->idx_src_map.size() > 0) {
         // first: returns a reference to the first value in the map, that is the value mapped to the smallest key.
         // This function assumes that the map is not empty.
@@ -189,7 +189,6 @@ void QuMultiReader::m_timerSetup() {
         d->timer = new QTimer(this);
         connect(d->timer, SIGNAL(timeout()), this, SLOT(startRead()));
         d->timer->setSingleShot(true);
-        printf("\e[1;31mQuMultiReader.m_TimerSetup: setting interval -- not starting -- duckin timer period %d\e[0m\n", d->period);
         if(d->period > 0)
             d->timer->setInterval(d->period);
     }
@@ -214,7 +213,6 @@ void QuMultiReader::onUpdate(const CuData &data) {
     srcs.contains(from) ? pos = d->idx_src_map.key(from) : pos = m_matchNoArgs(from);
     if(pos < 0)
         printf("\e[1;31mQuMultiReader::onUpdate idx_src_map DOES NOT CONTAIN \"%s\"\e[0m\n\n", qstoc(from));
-    printf("\e[1;31mQuMultiReader.onUpdate: from %s pos %d\e[0m\n", qstoc(from), pos);
     emit onNewData(data);
     if(d->sequential && pos >= 0) {
         d->databuf[pos] = data; // update or new
@@ -222,8 +220,8 @@ void QuMultiReader::onUpdate(const CuData &data) {
         const QList<int> &idxli = d->idx_src_map.keys();
         if(dkeys == idxli) { // databuf complete
             emit onSeqReadComplete(d->databuf.values()); // Returns all the values in the map, in ascending order of their keys
-            foreach(const CuData& da, d->databuf.values())
-                printf(" - QuMultiReader.onSeqReadComplete: %s\n", vtoc2(da, "src"));
+//            foreach(const CuData& da, d->databuf.values())
+//                printf(" - QuMultiReader.onSeqReadComplete: %s\n", vtoc2(da, "src"));
             d->databuf.clear();
         }
 
