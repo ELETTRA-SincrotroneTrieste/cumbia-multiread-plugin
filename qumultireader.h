@@ -21,17 +21,14 @@ class CuControlsReaderA;
  *
  * \code
  *
-void Multireader::m_loadMultiReaderPlugin()
-{
+void Multireader::m_loadMultiReaderPlugin() {
     QObject *plugin_qob;
-
-    if(!plugin) { // initialize plugin once
-        plugin = pl.get<QuMultiReaderPluginInterface>("libcumbia-multiread-plugin.so", &plugin_qob);
-        if(!plugin)
+    QuMultiReaderPluginInterface *multi_r;
+    if(!multi_r) { // initialize plugin once
+        multi_r = pl.get<QuMultiReaderPluginInterface>("libcumbia-multiread-plugin.so", &plugin_qob);
+        if(!multi_r)
             perr("Multireader: failed to load plugin \"libcumbia-multiread-plugin.so\"");
-        if (plugin) {
-            m_multir = qobject_cast<QuMultiReaderPluginInterface *>(plugin);
-
+        else {
             // configure multi reader
             // cu_t is a reference to CumbiaTango
             // cu_tango_r_fac is a CuTReaderFactory
@@ -47,14 +44,28 @@ void Multireader::m_loadMultiReaderPlugin()
             connect(m_multir->get_qobject(), SIGNAL(onNewData(const CuData&)), this, SLOT(newData(const CuData&)));
             connect(m_multir->get_qobject(), SIGNAL(onSeqReadComplete(const QList<CuData >&)), this, SLOT(seqReadComplete(const QList<CuData >&)));
             // set the sources
-            m_multir->setSources(srcs);
+            m_multir->insertSource("src1", 0);
+            m_multir->insertSource("src2", 1);
+
+            // need another (sequential) multi reader
+            QuMultiReader *r2 = m_multir->getMultiSequentialReader(parent);
+            // connect(r2, SIGNAL(onSeqReadComplete(const QList<CuData >&)) ...
+            // need another (sequential and manually refreshed) reader
+            QuMultiReader *manual_r3 = m_multir->getMultiSequentialReader(parent, true);
         }
-        else
-            perr("Multireader.m_loadMultiReaderPlugin: error loading plugin: %s", qstoc(pluginLoader.errorString()));
     }
 }
  *
  * \endcode
+ *
+ * Another version of the *init* method accepts a pointer to CumbiaPool and a reference to CuControlsFactoryPool.
+ *
+ * \note
+ * If the application needs only one multi reader, QuMultiReaderPluginInterface and the object returned by get_qobject
+ * for signal/slot connections can be used directly.
+ * The object is *shared* across the entire application.
+ * If you need more than one multi reader in your application, use getMultiSequentialReader or  getMultiConcurrentReader
+ * to obtain new instances. Call them with a parent for automatic destruction (r2 and manual_r3 in the example above)
  *
  * \par Warning
  * Do not forget to call
@@ -82,8 +93,8 @@ public:
     // QuMultiReaderPluginInterface interface
 public:
 
-    void init(Cumbia *cumbia, const CuControlsReaderFactoryI &r_fac, int manual_mode_code = 0);
-    void init(CumbiaPool *cumbia_pool, const CuControlsFactoryPool &fpool, int manual_mode_code = 0);
+    void init(Cumbia *cumbia, const CuControlsReaderFactoryI &r_fac, int mode = QuMultiReaderPluginInterface::SequentialReads);
+    void init(CumbiaPool *cumbia_pool, const CuControlsFactoryPool &fpool, int mode = QuMultiReaderPluginInterface::SequentialReads);
     void sendData(const QString& s, const CuData& da);
     void sendData(int index, const CuData& da);
     void setSources(const QStringList &srcs);
@@ -97,6 +108,10 @@ public:
     void setPeriod(int ms);
     void setSequential(bool seq);
     bool sequential() const;
+
+    QuMultiReaderPluginInterface *getMultiSequentialReader(QObject *parent, bool manual_refresh);
+    QuMultiReaderPluginInterface *getMultiConcurrentReader(QObject *parent);
+    CuContext *getContext() const;
 
 public slots:
     void startRead();
@@ -114,6 +129,7 @@ private:
     // CuDataListener interface
 public:
     void onUpdate(const CuData &data);
+
 };
 
 #endif // QUMULTIREADER_H

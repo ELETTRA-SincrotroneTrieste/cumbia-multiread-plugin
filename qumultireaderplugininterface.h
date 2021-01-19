@@ -11,6 +11,9 @@ class CuControlsFactoryPool;
 class QString;
 class QStringList;
 class CuData;
+class QuMultiReader;
+class CuContext;
+
 
 /** \brief Interface for a plugin implementing reader that connects to multiple quantities.
  *
@@ -22,8 +25,8 @@ class CuData;
  *     the onNewData signal.
  *
  * \li A multi reader must be initialised with the init method, that determines what is the engine used to read and whether the reading
- *     is sequential or parallel by means of the read_mode parameter. If the manual_mode_code is negative, the reading is parallel and the
- *     refresh mode is determined by the controls factory, as usual. If the manual_mode_code is non negative <em>it must correspond
+ *     is sequential or parallel by means of the read_mode parameter. If the mode is negative, the reading is parallel and the
+ *     refresh mode is determined by the controls factory, as usual. If the mode is non negative <em>it must correspond
  *     to the <strong>manual refresh mode</strong> of the underlying engine.</em>
  *     For example, CuTReader::Manual must be specified for the Tango control system engine in order to let the multi reader
  *     use an internal poller to read the attributes sequentially.
@@ -32,27 +35,35 @@ class CuData;
 class QuMultiReaderPluginInterface
 {
 public:
+    enum Mode { ConcurrentReads = 0, SequentialReads, SequentialManual };
+
     virtual ~QuMultiReaderPluginInterface() { }
 
     /** \brief Initialise the multi reader with the desired engine and the read mode.
      *
      * @param cumbia a reference to the cumbia  implementation
      * @param r_fac the engine reader factory
-     * @param manual_mode_code the value to be passed to the reading engine in order to make it work in
-     *        manual mode (no polling, no event refresh mode) and perform sequential reads or a negative
-     *        number to work in parallel mode.
+     * @param mode see the documentation of the CumbiaPool/CuControlsFactoryPool init method
+     *
+     * \par Note
+     * To support *multi engine* in cumbia, please use the other version of init.
      */
-    virtual void init(Cumbia *cumbia, const CuControlsReaderFactoryI &r_fac, int manual_mode_code) = 0;
+    virtual void init(Cumbia *cumbia, const CuControlsReaderFactoryI &r_fac, int mode) = 0;
 
     /** \brief Initialise the multi reader with mixed engine mode and the read mode.
      *
      * @param cumbia a reference to the CumbiaPool engine chooser
      * @param r_fac the CuControlsFactoryPool factory chooser
-     * @param manual_mode_code the value to be passed to the reading engine in order to make it work in
-     *        manual mode (no polling, no event refresh mode) and perform sequential reads or a negative
-     *        number to work in parallel mode.
+     * @param mode configuration to apply to the reader:
+     *     \li SequentialManual: manually triggered refresh, sequential readings in the same thread, notification
+     *         on single reads and on reading complete
+     *     \li ConcurrentReads: readings are performed concurrently and results notified asynchronously
+     *     \li SequentialReads: readings are performed sequentially and results are notified on cycle complete
+     *         as well as on each operation. Results are delivered in the order specified in insertSource, but
+     *         the actual readings are not guaranteed to be performed in such order.
+     *         Readings take place in the same thread.
      */
-    virtual void init(CumbiaPool *cumbia_pool, const CuControlsFactoryPool &fpool, int manual_mode_code) = 0;
+    virtual void init(CumbiaPool *cumbia_pool, const CuControlsFactoryPool &fpool, int mode) = 0;
 
     /** \brief set the sources to read from.
      *
@@ -124,6 +135,32 @@ public:
      * This is a convenience method equivalent to QString counterpart
      */
     virtual void sendData(int index, const CuData& da) = 0;
+
+    /*!
+     * \brief get an instance of a sequential multi reader
+     * \param parent the parent object
+     * \param manual_refresh if true, the reader will not automatically update
+     * \return an instance of QuMultiReader
+     */
+    virtual QuMultiReaderPluginInterface *getMultiSequentialReader(QObject *parent, bool manual_refresh = false) = 0;
+
+    /*!
+     * \brief get an instance of a multi reader where readings are performed concurrently
+     * \param parent the parent object
+     * \return an instance of QuMultiReader
+     */
+    virtual QuMultiReaderPluginInterface *getMultiConcurrentReader(QObject *parent) = 0;
+
+    /*!
+     * \brief get the context used by the multireader
+     * \return a pointer to the CuContext in use, which is nullptr if init has not been called yet
+     */
+    virtual CuContext *getContext() const = 0;
+};
+
+
+class QuMultiReaderO : public QObject, public QuMultiReaderPluginInterface {
+    Q_OBJECT
 };
 
 #define QuMultiReaderPluginInterface_iid "eu.elettra.qutils.QuMultiReaderPluginInterface"
