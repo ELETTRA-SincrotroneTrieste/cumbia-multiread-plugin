@@ -92,6 +92,7 @@ void QuMultiReader::insertSource(const QString &src, int i) {
         if(d->mode >= SequentialReads) // manual or seq
             options["thread_token"] = QString("multi_reader_%1").arg(objectName()).toStdString();
         d->context->setOptions(options);
+        printf("QuMultiReader.insertSource: options passed: %s\n", datos(options));
     }
     CuControlsReaderA* r = d->context->add_reader(src.toStdString(), this);
     if(r) {

@@ -88,12 +88,12 @@ Multireader::Multireader(CumbiaTango *cut, QWidget *parent) :
         perr("MultiReader.MultiReader: failed to load multi reader plugin");
         exit(EXIT_FAILURE);
     }
-    int manual_code;
-    m_sequential ? manual_code = CuTReader::Manual : manual_code = -1;
+    int mode;
+    m_sequential ? mode = QuMultiReaderPluginInterface::SequentialReads : mode = QuMultiReaderPluginInterface::ConcurrentReads;
     m_sequential ? setWindowTitle("Multi reader example: sequential mode") : setWindowTitle("Multi reader example: parallel readings");
 
     // configure multi reader
-    m_multir->init(cu_t, cu_tango_r_fac, manual_code);
+    m_multir->init(cu_t, cu_tango_r_fac, mode);
     // get multi reader as qobject in order to connect signals to slots
     connect(m_multir->get_qobject(), SIGNAL(onNewData(const CuData&)), this, SLOT(newData(const CuData&)));
     connect(m_multir->get_qobject(), SIGNAL(onSeqReadComplete(const QList<CuData >&)), this, SLOT(seqReadComplete(const QList<CuData >&)));
