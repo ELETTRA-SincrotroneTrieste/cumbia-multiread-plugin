@@ -2,7 +2,8 @@
 #define QUMULTIREADERPLUGININTERFACE_H
 
 #include <QObject>
-
+#include <cupluginloader.h>
+#include <cumacros.h>
 
 class Cumbia;
 class CumbiaPool;
@@ -35,6 +36,7 @@ class CuContext;
 class QuMultiReaderPluginInterface
 {
 public:
+
     enum Mode { ConcurrentReads = 0, SequentialReads, SequentialManual };
 
     virtual ~QuMultiReaderPluginInterface() { }
@@ -156,11 +158,36 @@ public:
      * \return a pointer to the CuContext in use, which is nullptr if init has not been called yet
      */
     virtual CuContext *getContext() const = 0;
-};
 
 
-class QuMultiReaderO : public QObject, public QuMultiReaderPluginInterface {
-    Q_OBJECT
+    // convenience method to get the plugin instance
+
+    /*!
+     * \brief QuMultiReaderPluginInterface::get_instance returns a (singleton, see note) instance of the plugin
+     * \param cu_poo pointer to a previously allocated CumbiaPool
+     * \param fpoo const reference to CuControlsFactoryPool
+     * \param mode one of QuMultiReaderPluginInterface::Mode modes
+     * \param plugin_qob a pointer to a QObject, will contain this plugin *as QObject* (for signals and slots)
+     * \return an instance of the plugin or nullptr in case of failure.
+     *
+     * \note Repeated calls will return the same plugin instance (by Qt plugin nature)
+     *       Use either getMultiSequentialReader or getMultiConcurrentReader to get new instances of multi readers instead
+     */
+    static QuMultiReaderPluginInterface* get_instance(CumbiaPool *cu_poo,
+                                                      const CuControlsFactoryPool& fpoo,
+                                                      QuMultiReaderPluginInterface::Mode mode,
+                                                      QObject *plugin_qob){
+        QuMultiReaderPluginInterface *i;
+        CuPluginLoader plo;
+        i = plo.get<QuMultiReaderPluginInterface>(file_name, &plugin_qob);
+        if(!i)
+            perr("QuMultiReaderPluginInterface::get_instance: failed to load plugin \"%s\"", file_name);
+        else
+            i->init(cu_poo, fpoo, mode);
+        return i;
+    }
+
+    static constexpr const char file_name[32] = "libcumbia-multiread-plugin.so";
 };
 
 #define QuMultiReaderPluginInterface_iid "eu.elettra.qutils.QuMultiReaderPluginInterface"

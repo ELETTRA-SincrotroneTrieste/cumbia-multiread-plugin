@@ -126,7 +126,7 @@ void Multireader::newData(const CuData &da)
 void Multireader::seqReadComplete(const QList<CuData> &da)
 {
     double sum = 0;
-    double val;
+    double val = 0.0;
     double cnt = 0;
     foreach(const CuData&d, da)
     {
