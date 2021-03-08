@@ -176,10 +176,10 @@ public:
     static QuMultiReaderPluginInterface* get_instance(CumbiaPool *cu_poo,
                                                       const CuControlsFactoryPool& fpoo,
                                                       QuMultiReaderPluginInterface::Mode mode,
-                                                      QObject *plugin_qob){
+                                                      QObject **plugin_qob){
         QuMultiReaderPluginInterface *i;
         CuPluginLoader plo;
-        i = plo.get<QuMultiReaderPluginInterface>(file_name, &plugin_qob);
+        i = plo.get<QuMultiReaderPluginInterface>(file_name, plugin_qob);
         if(!i)
             perr("QuMultiReaderPluginInterface::get_instance: failed to load plugin \"%s\"", file_name);
         else
