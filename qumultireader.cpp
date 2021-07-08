@@ -198,16 +198,18 @@ void QuMultiReader::onUpdate(const CuData &data) {
     int pos;
     const QList<QString> &srcs = d->idx_src_map.values();
     srcs.contains(from) ? pos = d->idx_src_map.key(from) : pos = m_matchNoArgs(from);
-    if(pos < 0)
-        printf("\e[1;31mQuMultiReader::onUpdate idx_src_map DOES NOT CONTAIN \"%s\"\e[0m\n\n", qstoc(from));
     emit onNewData(data);
-    if((d->mode >= SequentialReads) && pos >= 0) {
+    if(pos >= 0) {
         d->databuf[pos] = data; // update or new
-        const QList<int> &dkeys = d->databuf.keys();
-        const QList<int> &idxli = d->idx_src_map.keys();
-        if(dkeys == idxli) { // databuf complete
-            emit onSeqReadComplete(d->databuf.values()); // Returns all the values in the map, in ascending order of their keys
-            d->databuf.clear();
+        // complete data update when a single value changes may be handy in concurrent mode
+        emit onNewData(d->databuf.values());
+        if((d->mode >= SequentialReads)) {
+            const QList<int> &dkeys = d->databuf.keys();
+            const QList<int> &idxli = d->idx_src_map.keys();
+            if(dkeys == idxli) { // databuf complete
+                emit onSeqReadComplete(d->databuf.values()); // Returns all the values in the map, in ascending order of their keys
+                d->databuf.clear();
+            }
         }
     }
 }

@@ -23,7 +23,9 @@ class CuContext;
  * \li Readings can be sequential or parallel (see the init method). Sequential readings must notify when a reading is performed
  *     and when a complete read cycle is over, providing the read data through two Qt signals: onNewData(const CuData& da) and
  *     onSeqReadComplete(const QList<CuData >& data). Parallel readings must notify only when a new result is available, emitting
- *     the onNewData signal.
+ *     the onNewData signal. Since version 1.0.3 an additional onNewData signal handing a (const QList<CuData >&) argument
+ *     has been provided and is emitted whenever a single reading has been accomplished. Clients interested in *concurrent
+ *     readings* may find it useful in order to be notified as soon as one of the values monitored changes.
  *
  * \li A multi reader must be initialised with the init method, that determines what is the engine used to read and whether the reading
  *     is sequential or parallel by means of the read_mode parameter. If the mode is negative, the reading is parallel and the
@@ -31,6 +33,12 @@ class CuContext;
  *     to the <strong>manual refresh mode</strong> of the underlying engine.</em>
  *     For example, CuTReader::Manual must be specified for the Tango control system engine in order to let the multi reader
  *     use an internal poller to read the attributes sequentially.
+ *
+ * \par Note
+ * Note that *sequential mode may not work with the cumbia-http module*. This is because in that case results are delivered
+ * only when their value changes. For example, if you monitor *n* variables and just one of them never changes, the sequential
+ * read cycle would never be completed. Code that must be portable across different cumbia engines and in particular when
+ * the *http module* is involved must be carefully design to avoid unexpected malfunctioning.
  *
  */
 class QuMultiReaderPluginInterface

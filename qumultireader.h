@@ -106,6 +106,7 @@ public slots:
 
 signals:
     void onNewData(const CuData& da);
+    void onNewData(const QList<CuData >& data);
     void onSeqReadComplete(const QList<CuData >& data);
 
 private:
